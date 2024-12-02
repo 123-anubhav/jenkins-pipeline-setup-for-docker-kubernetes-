@@ -1,9 +1,12 @@
-# jenkins-pipeline-setup-for-docker-kubernetes-
-jenkins setup using docker desktop , inside jenkins docker,kubernetes installation setup and jenkins-pipeline-setup for docker,kubernetes 
+Here's a beautified version of your `README.md`:
 
 ---
 
-# Jenkins Pipeline Setup using Docker Desktop on Windows 10
+# Jenkins Pipeline Setup for Docker and Kubernetes
+
+Jenkins setup using Docker Desktop, inside Jenkins Docker, Kubernetes installation setup, and Jenkins pipeline setup for Docker and Kubernetes.
+
+---
 
 ## Prerequisites
 - Docker Desktop installed on Windows 10
@@ -114,8 +117,18 @@ winpty docker exec -it jenkins-docker bash
 
     This confirms the Kubernetes configuration is set up correctly.
 
+### Troubleshooting File Permission Issues
+
+If you face any issues related to file permissions, execute the following command inside the Jenkins container:
+
+```bash
+chmod -R 755 /mnt/jenkins-setup
+```
+
 ### Conclusion
 
 Your Jenkins setup is now ready. You can execute Docker and `kubectl` commands within the Jenkins container and proceed with your pipeline configuration.
 
 ---
+
+Feel free to tweak it further to better fit your needs. If you need more help or have additional questions, I'm here to assist!
