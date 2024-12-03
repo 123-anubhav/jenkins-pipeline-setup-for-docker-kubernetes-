@@ -96,10 +96,27 @@ pipeline {
         
         stage('Deploy MySQL Database') {
             steps {
-                sh """
-                mysql -h $DB_HOST -u $DB_USER -p$DB_PASSWORD -e 'CREATE DATABASE IF NOT EXISTS mysqldb;'
-                mysql -h $DB_HOST -u $DB_USER -p$DB_PASSWORD mysqldb < src/main/resources/schema.sql
-                """
+                script {
+                    // Pull and run MySQL container
+                    sh """
+                    docker pull mysql:8.0
+                    docker run --name mysqldb-container -d \
+                      -e MYSQL_ROOT_PASSWORD=$DB_PASSWORD \
+                      -e MYSQL_DATABASE=mysqldb \
+                      -e MYSQL_USER=$DB_USER \
+                      -e MYSQL_PASSWORD=$DB_PASSWORD \
+                      -p 3306:3306 \
+                      mysql:8.0
+                    """
+                    
+                    // Wait for MySQL to initialize
+                    sh "sleep 20"
+
+                    // Initialize the database with schema.sql
+                    sh """
+                    docker exec -i mysqldb-container mysql -u $DB_USER -p$DB_PASSWORD mysqldb < src/main/resources/schema.sql
+                    """
+                }
             }
         }
 
