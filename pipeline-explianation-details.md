@@ -1,12 +1,40 @@
+ Jenkins pipeline and the provided script.
+
 ---
 
-# Jenkins Declarative Pipeline for Docker and Kubernetes
+# **Jenkins Declarative Pipeline for Docker and Kubernetes**
 
-This Jenkins pipeline is designed to automate the building, testing, and deployment of a Maven-based web application using Docker and Kubernetes.
+This Jenkins pipeline automates the process of building, testing, and deploying a Maven-based web application using Docker and Kubernetes. It includes several stages to ensure a streamlined CI/CD workflow.
 
-## Pipeline Stages
+---
 
-### Pipeline Configuration
+## **Pipeline Stages**
+
+### 1. **Git Clone**
+- Fetches the source code from the specified GitHub repository.
+- Ensures the latest changes are always pulled before the build process.
+
+### 2. **Maven Clean and Package**
+- Cleans the Maven workspace and compiles the project.
+- Packages the application into a `.jar` or `.war` file, depending on the project configuration.
+
+### 3. **Docker Image Creation**
+- Builds a Docker image using the application code and the provided `Dockerfile`.
+- Tags the image with the name `anubhav`.
+
+### 4. **Set Kubernetes Context**
+- Checks if the `docker-desktop` context exists in the Kubernetes configuration.
+- If the context is found, it switches to it; otherwise, it logs a message that the context is unavailable.
+
+### 5. **Kubernetes Deployment**
+- Applies the Kubernetes deployment configurations using the `kubectl apply` command.
+- Reads the deployment files from the specified directory (`YAML_PATH`).
+
+---
+
+## **Pipeline Configuration**
+
+Below is the declarative pipeline script used in this project:
 
 ```groovy
 pipeline {
@@ -21,25 +49,25 @@ pipeline {
     }
 
     stages {
-        stage('git clone') {
+        stage('Git Clone') {
             steps {
-                echo 'git clone'
+                echo 'Cloning the Git repository...'
                 git 'https://github.com/ashokitschool/maven-web-app.git'
             }
         }
-        stage('maven clean package') {
+        stage('Maven Clean and Package') {
             steps {
-                echo 'maven clean package'
+                echo 'Executing Maven clean and package...'
                 sh 'mvn clean package'
             }
         }
-        stage('docker image creation') {
+        stage('Docker Image Creation') {
             steps {
-                echo 'docker image creation'
+                echo 'Building Docker image...'
                 sh 'docker build -t anubhav .'
             }
         }
-        stage('Set kubectl context') {
+        stage('Set Kubernetes Context') {
             steps {
                 script {
                     def contextExists = sh(script: 'kubectl config get-contexts | grep docker-desktop', returnStatus: true) == 0
@@ -51,16 +79,15 @@ pipeline {
                 }
             }
         }
-        stage('ks deployments') {
+        stage('Kubernetes Deployment') {
             steps {
                 echo "YAML Path: ${YAML_PATH}"
-                sh 'kubectl config use-context docker-desktop || echo "Context docker-desktop not found"'
                 sh '''
-                    echo "Current Directory:"
+                    echo "Navigating to YAML path..."
                     cd "${YAML_PATH}"
                     pwd
                     ls -l
-                    echo 'kubernetes deployments execution starts!............!...........!...........!'
+                    echo 'Executing Kubernetes deployment...'
                     kubectl apply -f javawebapp.yml
                 '''
             }
@@ -78,43 +105,90 @@ pipeline {
 }
 ```
 
-### Explanation of Each Stage
+---
 
-1. **Pipeline Configuration**:
-   - **agent any**: The pipeline can run on any available Jenkins agent.
-   - **tools**: Specifies the Maven version to use (`m3`).
-   - **environment**: Defines an environment variable `YAML_PATH` pointing to the Jenkins setup directory.
+## **Troubleshooting**
 
-2. **Stages**:
-   - **git clone**: 
-     - Clones the Git repository containing the Maven web application.
-     - `git 'https://github.com/ashokitschool/maven-web-app.git'` fetches the latest code.
-   - **maven clean package**: 
-     - Runs `mvn clean package` to clean and package the Maven project.
-   - **docker image creation**: 
-     - Builds a Docker image named `anubhav` from the Dockerfile in the project directory.
-   - **Set kubectl context**: 
-     - Checks if the `docker-desktop` context exists and sets it as the current context for `kubectl`.
-     - If the context is not found, it logs an appropriate message.
-   - **ks deployments**:
-     - Uses the `kubectl` command to apply Kubernetes configurations from the specified YAML file.
-     - Displays the current directory and lists its contents before applying the configurations.
-     - Deploys the `javawebapp.yml` Kubernetes configuration.
+### Common Issues and Fixes
 
-3. **Post Actions**:
-   - **success**: Prints a success message upon successful pipeline completion.
-   - **failure**: Prints a failure message if the pipeline encounters any errors.
+#### **1. YAML Syntax Error**
+If you encounter an error like:
+```
+found character that cannot start any token
+```
+- Check the `javawebapp.yml` file for syntax issues.
+- Ensure proper indentation (use spaces, not tabs).
+- Use a YAML linter:
+  ```bash
+  yamllint javawebapp.yml
+  ```
 
-### Additional Troubleshooting
+#### **2. Kubernetes Context Not Found**
+If the `docker-desktop` context is missing:
+- Verify the Kubernetes cluster configuration using:
+  ```bash
+  kubectl config get-contexts
+  ```
+- Switch to an available context:
+  ```bash
+  kubectl config use-context <your-context-name>
+  ```
 
-If you face any file permission issues inside the Jenkins container, execute the following command:
+#### **3. Permission Issues**
+If you face permission errors for the `YAML_PATH` directory:
+- Update the directory permissions:
+  ```bash
+  chmod -R 755 /mnt/jenkins-setup
+  ```
 
-```bash
-chmod -R 755 /mnt/jenkins-setup
+---
+
+## **Kubernetes Deployment Example**
+
+Here’s an example `javawebapp.yml` file for Kubernetes deployment:
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: javawebapp-deployment
+  labels:
+    app: javawebapp
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: javawebapp
+  template:
+    metadata:
+      labels:
+        app: javawebapp
+    spec:
+      containers:
+      - name: javawebapp
+        image: anubhav:latest
+        ports:
+        - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: javawebapp-service
+spec:
+  selector:
+    app: javawebapp
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
+  type: NodePort
 ```
 
-### Conclusion
+---
 
-This pipeline automates the process of cloning the repository, building the Maven project, creating a Docker image, setting the Kubernetes context, and deploying the application. It ensures a streamlined CI/CD workflow for your Maven-based web application using Jenkins, Docker, and Kubernetes.
+## **Key Notes**
+- Update the `YAML_PATH` variable to match your Jenkins file system.
+- Ensure Docker, Kubernetes CLI (`kubectl`), and Maven are installed and configured on the Jenkins server.
+- Verify that the Kubernetes cluster is running and accessible.
 
 ---
